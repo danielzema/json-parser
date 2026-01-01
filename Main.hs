@@ -1,5 +1,8 @@
 module Main where 
 
+data JsonValue = JsonNull 
+               | JsonBool
+
 -- Parse a single char
 charParser :: Char -> String -> Maybe (String, Char)
 charParser goal text =  
@@ -17,7 +20,13 @@ stringParser (firstGoal:restGoal) text =
                                 Just (remainder, restResult) -> Just (remainder, firstGoal : restResult)
         _ -> Nothing
 
-
+-- Parse JsonNull, return Nothing if text isn't "null"
+jsonNullParser :: String -> Maybe (String, JsonValue)
+jsonNullParser text = 
+    case stringParser "null" text of 
+        -- If it return Just it means that it found null
+        Just (remainder, _) -> Just (remainder, JsonNull)
+        Nothing             -> Nothing
 
 main :: IO ()
 main = undefined
