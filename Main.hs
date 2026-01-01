@@ -6,6 +6,7 @@ data JsonValue = JsonNull
                | JsonBool Bool
                | JsonNumber Integer
                | JsonString String 
+               | JsonArray [JsonValue]
                deriving (Show, Eq)
 
 -- Parse a single char
@@ -13,7 +14,7 @@ charParser :: Char -> String -> Maybe (String, Char)
 charParser goal text =  
     case text of 
         x:xs | x == goal -> Just (xs, goal)
-        _             -> Nothing
+        _                -> Nothing
 
 -- Check if a word is in the beginning of a string
 stringParser :: String -> String -> Maybe (String, String)
@@ -67,6 +68,18 @@ jsonStringParser text =
                     ('"':afterEndQuoation) -> Just (afterEndQuoation, JsonString stringjson)
                     _ -> Nothing 
         _ -> Nothing 
+
+-- Test all different parsers
+jsonValueParser :: String -> Maybe (String, JsonValue)
+jsonValueParser text = 
+    case jsonNullParser text of 
+        Just x  -> Just x 
+        Nothing -> case jsonBoolParser text of 
+            Just x  -> Just x 
+            Nothing -> case jsonNumberParser text of 
+                Just x  -> Just x 
+                Nothing -> jsonStringParser text
+
 
 main :: IO ()
 main = undefined
