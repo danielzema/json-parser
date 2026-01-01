@@ -5,6 +5,8 @@ import Data.Char (isDigit)
 data JsonValue = JsonNull 
                | JsonBool Bool
                | JsonNumber Integer
+               | JsonString String 
+               deriving (Show, Eq)
 
 -- Parse a single char
 charParser :: Char -> String -> Maybe (String, Char)
@@ -24,6 +26,7 @@ stringParser (firstGoal:restGoal) text =
         _ -> Nothing
 
 -- Parse JsonNull, return Nothing if text isn't "null"
+-- null    
 jsonNullParser :: String -> Maybe (String, JsonValue)
 jsonNullParser text = 
     case stringParser "null" text of 
@@ -31,6 +34,8 @@ jsonNullParser text =
         Just (remainder, _) -> Just (remainder, JsonNull)
         Nothing             -> Nothing
 
+-- Parse booleans
+-- true
 jsonBoolParser :: String -> Maybe (String, JsonValue)
 jsonBoolParser text = 
     case stringParser "true" text of 
@@ -39,12 +44,29 @@ jsonBoolParser text =
                                    Just (remainder, _) -> Just (remainder, JsonBool False)
                                    Nothing             -> Nothing 
 
+-- Parse Integers, floats not supported
+-- 123
 jsonNumberParser :: String -> Maybe (String, JsonValue)
 jsonNumberParser text = 
     let (digits, remainder) = span isDigit text in 
         case digits of 
             "" -> Nothing 
             _  -> Just (remainder, JsonNumber (read digits))
+
+-- Parse a string to JsonString
+-- "text"
+jsonStringParser :: String -> Maybe (String, JsonValue)
+jsonStringParser text = 
+    case text of
+        -- Opening quote 
+        ('"':rest) -> 
+            -- String body 
+            let (stringjson, remainder) = span (/= '"') rest in 
+                -- Closing quote
+                case remainder of 
+                    ('"':afterEndQuoation) -> Just (afterEndQuoation, JsonString stringjson)
+                    _ -> Nothing 
+        _ -> Nothing 
 
 main :: IO ()
 main = undefined
