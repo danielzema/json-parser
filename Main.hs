@@ -1,7 +1,10 @@
 module Main where 
 
+import Data.Char (isDigit)
+
 data JsonValue = JsonNull 
                | JsonBool Bool
+               | JsonNumber Integer
 
 -- Parse a single char
 charParser :: Char -> String -> Maybe (String, Char)
@@ -36,6 +39,12 @@ jsonBoolParser text =
                                    Just (remainder, _) -> Just (remainder, JsonBool False)
                                    Nothing             -> Nothing 
 
+jsonNumberParser :: String -> Maybe (String, JsonValue)
+jsonNumberParser text = 
+    let (digits, remainder) = span isDigit text in 
+        case digits of 
+            "" -> Nothing 
+            _  -> Just (remainder, JsonNumber (read digits))
 
 main :: IO ()
 main = undefined
