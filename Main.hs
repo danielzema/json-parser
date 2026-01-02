@@ -80,6 +80,32 @@ jsonValueParser text =
                 Just x  -> Just x 
                 Nothing -> jsonStringParser text
 
+-- Parse JsonArray
+jsonArrayParser :: String -> Maybe (String, JsonValue)
+jsonArrayParser text = 
+    case text of 
+        -- After opening bracket, call helper function to parse all elems inside
+        ('[':rest) -> case parseElems rest of 
+            Just (afterEndBracket, elems) -> Just (afterEndBracket, JsonArray elems)
+            Nothing                       -> Nothing 
+        _ -> Nothing
+
+parseElems :: String -> Maybe (String, [JsonValue])
+parseElems text = 
+    case text of 
+        -- Base case
+        (']':rest) -> Just (rest, [])
+        -- Find which type of JsonValue by calling jsonValueParser
+        _          -> case jsonValueParser text of 
+                        Nothing -> Nothing 
+                        Just (removeAfter, val) -> case removeAfter of 
+                            -- Continue recursion if comma, more JsonValues to come
+                            (',':removeAfterComma) -> case parseElems removeAfterComma of 
+                                Nothing -> Nothing 
+                                Just (removeFinal, restOfVals) -> Just (removeFinal, val : restOfVals)
+                            -- End recursion if closing bracket
+                            (']':removeFinal) -> Just (removeFinal, [val])
+                            _                 -> Nothing
 
 main :: IO ()
 main = undefined
