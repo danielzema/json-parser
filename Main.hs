@@ -1,6 +1,6 @@
 module Main where 
 
-import Data.Char (isDigit)
+import Data.Char (isDigit, isSpace)
 
 data JsonValue = JsonNull 
                | JsonBool Bool
@@ -9,6 +9,9 @@ data JsonValue = JsonNull
                | JsonArray [JsonValue]
                | JsonObject [(String, JsonValue)]
                deriving (Show, Eq)
+
+removeWhiteSpace :: String -> String 
+removeWhiteSpace text = dropWhile isSpace text
 
 -- Parse a single char
 charParser :: Char -> String -> Maybe (String, Char)
@@ -72,7 +75,8 @@ jsonStringParser text =
 
 -- Test all different parsers
 jsonValueParser :: String -> Maybe (String, JsonValue)
-jsonValueParser text = 
+jsonValueParser input =
+    let text = removeWhiteSpace input in  
     case jsonNullParser text of 
         Just x  -> Just x 
         Nothing -> case jsonBoolParser text of 
@@ -96,14 +100,14 @@ jsonArrayParser text =
         _          -> Nothing
 
 parseElems :: String -> Maybe (String, [JsonValue])
-parseElems text = 
-    case text of 
+parseElems input = 
+    case removeWhiteSpace input of 
         -- Base case
         (']':rest) -> Just (rest, [])
         -- Find which type of JsonValue by calling jsonValueParser
-        _          -> case jsonValueParser text of 
+        text       -> case jsonValueParser text of 
                         Nothing -> Nothing 
-                        Just (removeAfter, val) -> case removeAfter of 
+                        Just (removeAfter, val) -> case removeWhiteSpace removeAfter of 
                             -- Continue recursion if comma, more JsonValues to come
                             (',':removeAfterComma) -> case parseElems removeAfterComma of 
                                 Nothing -> Nothing 
@@ -122,17 +126,17 @@ jsonObjectParser text =
         _         -> Nothing
 
 parsePairs :: String -> Maybe (String, [(String, JsonValue)])
-parsePairs text =
-    case text of 
+parsePairs input =
+    case removeWhiteSpace input of 
         -- Base case
         ('}':rest) -> Just (rest, [])
-        _          -> case jsonStringParser text of 
+        text       -> case jsonStringParser text of 
                         -- Find key, return "key"
-                        Just (removeAfterKey, JsonString key) -> case removeAfterKey of 
+                        Just (removeAfterKey, JsonString key) -> case removeWhiteSpace removeAfterKey of 
                                                                     -- Find colon, it can be anything behind it, thus call jsonValueParser
                                                                     (':':removeAfterColon) -> case jsonValueParser removeAfterColon of
                                                                                                 -- 
-                                                                                                Just (removeAfterValue, val) -> case removeAfterValue of 
+                                                                                                Just (removeAfterValue, val) -> case removeWhiteSpace removeAfterValue of 
                                                                                                                                   -- Recursion until no more commas found
                                                                                                                                   (',':removeAfterComma) -> case parsePairs removeAfterComma of
                                                                                                                                                                 Just (removeFinal, restPairs) -> Just (removeFinal, (key, val) : restPairs)
@@ -146,10 +150,9 @@ parsePairs text =
         
 parseJson :: String -> Maybe JsonValue 
 parseJson input = 
-    case jsonValueParser input of 
-        Just ("", val) -> Just val -- Parsed everything 
-        Just (_, val)  -> Just val -- Stuff remains 
-        Nothing        -> Nothing  -- Failed to parse
+    case jsonValueParser (removeWhiteSpace input) of
+        Just (remainder, val) -> if all isSpace remainder then Just val else Nothing 
+        Nothing               -> Nothing
 
 main :: IO ()
 main = do
