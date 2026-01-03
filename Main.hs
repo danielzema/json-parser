@@ -154,10 +154,33 @@ parseJson input =
         Just (remainder, val) -> if all isSpace remainder then Just val else Nothing 
         Nothing               -> Nothing
 
+{-
+TODO: 
+
+Print function 
+Lookup/deep search function to find any field
+-}
+
+findKey :: String -> JsonValue -> Maybe JsonValue 
+findKey search (JsonObject pairs) = lookup search pairs 
+findKey _ _ = Nothing 
+
 main :: IO ()
 main = do
-    -- Read into a string 
+    -- Read into a string
+    -- data.json contains example from https://json.org/example.html 
     text <- readFile "data.json"
     case parseJson text of 
-        Just val -> print val 
-        Nothing  -> putStrLn "Invalid JSON"
+        Just root -> do
+            case findKey "project" root of
+                Just (JsonString name) -> putStrLn $ "Project name: " ++ name
+                Just _                 -> putStrLn "Project found but not a string"
+                Nothing                -> putStrLn "Could not find project."
+            
+            case findKey "metadata" root of
+                Just metaObject -> case findKey "author" metaObject of
+                    Just (JsonString author) -> putStrLn $ "Author: " ++ author
+                    _ -> putStrLn "Author not found in metadata."
+                _ -> putStrLn "Metadata not found."
+
+        Nothing -> putStrLn "Invalid JSON file."
