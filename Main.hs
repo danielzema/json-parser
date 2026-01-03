@@ -81,7 +81,9 @@ jsonValueParser text =
                 Just x  -> Just x 
                 Nothing -> case jsonStringParser text of 
                     Just x  -> Just x 
-                    Nothing -> jsonArrayParser text
+                    Nothing -> case jsonArrayParser text of 
+                        Just x  -> Just x 
+                        Nothing -> jsonObjectParser text
 
 -- Parse JsonArray
 jsonArrayParser :: String -> Maybe (String, JsonValue)
@@ -142,7 +144,17 @@ parsePairs text =
                                                                     _                      -> Nothing 
                         _                                     -> Nothing 
         
-
+parseJson :: String -> Maybe JsonValue 
+parseJson input = 
+    case jsonValueParser input of 
+        Just ("", val) -> Just val -- Parsed everything 
+        Just (_, val)  -> Just val -- Stuff remains 
+        Nothing        -> Nothing  -- Failed to parse
 
 main :: IO ()
-main = undefined
+main = do
+    -- Read into a string 
+    text <- readFile "data.json"
+    case parseJson text of 
+        Just val -> print val 
+        Nothing  -> putStrLn "Invalid JSON"
