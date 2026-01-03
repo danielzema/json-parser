@@ -7,6 +7,7 @@ data JsonValue = JsonNull
                | JsonNumber Integer
                | JsonString String 
                | JsonArray [JsonValue]
+               | JsonObject [(String, JsonValue)]
                deriving (Show, Eq)
 
 -- Parse a single char
@@ -78,7 +79,9 @@ jsonValueParser text =
             Just x  -> Just x 
             Nothing -> case jsonNumberParser text of 
                 Just x  -> Just x 
-                Nothing -> jsonStringParser text
+                Nothing -> case jsonStringParser text of 
+                    Just x  -> Just x 
+                    Nothing -> jsonArrayParser text
 
 -- Parse JsonArray
 jsonArrayParser :: String -> Maybe (String, JsonValue)
@@ -88,7 +91,7 @@ jsonArrayParser text =
         ('[':rest) -> case parseElems rest of 
             Just (afterEndBracket, elems) -> Just (afterEndBracket, JsonArray elems)
             Nothing                       -> Nothing 
-        _ -> Nothing
+        _          -> Nothing
 
 parseElems :: String -> Maybe (String, [JsonValue])
 parseElems text = 
@@ -106,6 +109,40 @@ parseElems text =
                             -- End recursion if closing bracket
                             (']':removeFinal) -> Just (removeFinal, [val])
                             _                 -> Nothing
+
+-- Parse JsonObject
+jsonObjectParser :: String -> Maybe (String, JsonValue)
+jsonObjectParser text = 
+    case text of 
+        ('{':rest) -> case parsePairs rest of 
+            Just (afterBrace, pairs) -> Just (afterBrace, JsonObject pairs)
+            Nothing                  -> Nothing
+        _         -> Nothing
+
+parsePairs :: String -> Maybe (String, [(String, JsonValue)])
+parsePairs text =
+    case text of 
+        -- Base case
+        ('}':rest) -> Just (rest, [])
+        _          -> case jsonStringParser text of 
+                        -- Find key, return "key"
+                        Just (removeAfterKey, JsonString key) -> case removeAfterKey of 
+                                                                    -- Find colon, it can be anything behind it, thus call jsonValueParser
+                                                                    (':':removeAfterColon) -> case jsonValueParser removeAfterColon of
+                                                                                                -- 
+                                                                                                Just (removeAfterValue, val) -> case removeAfterValue of 
+                                                                                                                                  -- Recursion until no more commas found
+                                                                                                                                  (',':removeAfterComma) -> case parsePairs removeAfterComma of
+                                                                                                                                                                Just (removeFinal, restPairs) -> Just (removeFinal, (key, val) : restPairs)
+                                                                                                                                                                Nothing                       -> Nothing
+
+                                                                                                                                  ('}':removeFinal)      -> Just (removeFinal, [(key, val)])
+                                                                                                                                  _                      -> Nothing 
+                                                                                                Nothing                      -> Nothing 
+                                                                    _                      -> Nothing 
+                        _                                     -> Nothing 
+        
+
 
 main :: IO ()
 main = undefined
