@@ -169,18 +169,6 @@ main :: IO ()
 main = do
     -- Read into a string
     -- data.json contains example from https://json.org/example.html 
-    text <- readFile "data.json"
-    case parseJson text of 
-        Just root -> do
-            case findKey "project" root of
-                Just (JsonString name) -> putStrLn $ "Project name: " ++ name
-                Just _                 -> putStrLn "Project found but not a string"
-                Nothing                -> putStrLn "Could not find project."
-            
-            case findKey "metadata" root of
-                Just metaObject -> case findKey "author" metaObject of
-                    Just (JsonString author) -> putStrLn $ "Author: " ++ author
-                    _ -> putStrLn "Author not found in metadata."
-                _ -> putStrLn "Metadata not found."
-
-        Nothing -> putStrLn "Invalid JSON file."
+    content <- readFile "data.json"
+    let result = parseJson content
+    print result
