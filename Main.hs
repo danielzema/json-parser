@@ -10,8 +10,10 @@ data JsonValue = JsonNull
                | JsonObject [(String, JsonValue)]
                deriving (Show, Eq)
 
+
 removeWhiteSpace :: String -> String 
 removeWhiteSpace text = dropWhile isSpace text
+
 
 -- Parse a single char
 charParser :: Char -> String -> Maybe (String, Char)
@@ -19,6 +21,7 @@ charParser goal text =
     case text of 
         x:xs | x == goal -> Just (xs, goal)
         _                -> Nothing
+
 
 -- Check if a word is in the beginning of a string
 stringParser :: String -> String -> Maybe (String, String)
@@ -30,6 +33,7 @@ stringParser (firstGoal:restGoal) text =
                                 Just (remainder, restResult) -> Just (remainder, firstGoal : restResult)
         _ -> Nothing
 
+
 -- Parse JsonNull, return Nothing if text isn't "null"
 -- null    
 jsonNullParser :: String -> Maybe (String, JsonValue)
@@ -38,6 +42,7 @@ jsonNullParser text =
         -- If it return Just it means that it found null
         Just (remainder, _) -> Just (remainder, JsonNull)
         Nothing             -> Nothing
+
 
 -- Parse booleans
 -- true
@@ -49,6 +54,7 @@ jsonBoolParser text =
                                    Just (remainder, _) -> Just (remainder, JsonBool False)
                                    Nothing             -> Nothing 
 
+
 -- Parse Integers, floats not supported
 -- 123
 jsonNumberParser :: String -> Maybe (String, JsonValue)
@@ -57,6 +63,7 @@ jsonNumberParser text =
         case digits of 
             "" -> Nothing 
             _  -> Just (remainder, JsonNumber (read digits))
+
 
 -- Parse a string to JsonString
 -- "text"
@@ -72,6 +79,7 @@ jsonStringParser text =
                     ('"':afterEndQuoation) -> Just (afterEndQuoation, JsonString stringjson)
                     _ -> Nothing 
         _ -> Nothing 
+
 
 -- Test all different parsers
 jsonValueParser :: String -> Maybe (String, JsonValue)
@@ -89,6 +97,7 @@ jsonValueParser input =
                         Just x  -> Just x 
                         Nothing -> jsonObjectParser text
 
+
 -- Parse JsonArray
 jsonArrayParser :: String -> Maybe (String, JsonValue)
 jsonArrayParser text = 
@@ -98,6 +107,7 @@ jsonArrayParser text =
             Just (afterEndBracket, elems) -> Just (afterEndBracket, JsonArray elems)
             Nothing                       -> Nothing 
         _          -> Nothing
+
 
 parseElems :: String -> Maybe (String, [JsonValue])
 parseElems input = 
@@ -116,6 +126,7 @@ parseElems input =
                             (']':removeFinal) -> Just (removeFinal, [val])
                             _                 -> Nothing
 
+
 -- Parse JsonObject
 jsonObjectParser :: String -> Maybe (String, JsonValue)
 jsonObjectParser text = 
@@ -124,6 +135,7 @@ jsonObjectParser text =
             Just (afterBrace, pairs) -> Just (afterBrace, JsonObject pairs)
             Nothing                  -> Nothing
         _         -> Nothing
+
 
 parsePairs :: String -> Maybe (String, [(String, JsonValue)])
 parsePairs input =
@@ -161,9 +173,34 @@ Print function
 Lookup/deep search function to find any field
 -}
 
+-- Search on root level
 findKey :: String -> JsonValue -> Maybe JsonValue 
 findKey search (JsonObject pairs) = lookup search pairs 
-findKey _ _ = Nothing 
+findKey _ _ = Nothing  
+
+
+-- Search nested JSON
+-- Handles depth while helper function handles breadth
+search :: String -> JsonValue -> Maybe JsonValue 
+-- First try JsonObject
+search target (JsonObject pairs) = 
+    case lookup target pairs of 
+        Just val -> Just val 
+        Nothing  -> findInList target [v | (_, v) <- pairs]
+-- Then try JsonArray 
+search target (JsonArray elems) = 
+    findInList target elems 
+-- Remaning 4 datatypes are non recursive - cant go deeper 
+search _ _  = Nothing 
+
+
+findInList :: String -> [JsonValue] -> Maybe JsonValue 
+findInList target [] = Nothing 
+findInList target (x:xs) = 
+    case search target x of 
+        Just ok -> Just ok 
+        Nothing -> findInList target xs 
+
 
 main :: IO ()
 main = do
