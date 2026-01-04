@@ -202,10 +202,55 @@ findInList target (x:xs) =
         Nothing -> findInList target xs 
 
 
+printTerminal :: JsonValue -> String 
+printTerminal jsonValue = printNice 0 jsonValue
+
+
+-- d = number of spaces for indentation
+printNice :: Int -> JsonValue -> String 
+printNice d JsonNull           = "null"
+printNice d (JsonBool b)       = if b then "true" else "false"
+printNice d (JsonNumber n)     = show n 
+printNice d (JsonString s)     = "\"" ++ s ++ "\""
+printNice d (JsonArray xs)     = 
+    "[\n" ++ concatWithComma (map (printNice (d + 2)) xs) (d + 2) ++ "\n" ++ indent d ++ "]"
+printNice d (JsonObject pairs) = 
+    "{\n" ++ concatWithComma (map (printPair (d + 2)) pairs) (d + 2) ++ "\n" ++ indent d ++ "}"
+    where 
+        printPair depth (k, v) = indent depth ++ "\"" ++ k ++ "\": " ++ printNice depth v
+
+
+indent :: Int -> String 
+indent n = replicate n ' '
+
+
+concatWithComma :: [String] -> Int -> String 
+concatWithComma [] _     = ""
+concatWithComma [x] _    = x
+concatWithComma (x:xs) d = x ++ ",\n" ++ indent d ++ concatWithComma xs d  
+
+searchTerminal :: JsonValue -> IO ()
+searchTerminal root = do 
+    putStr "\n Enter a key to search for: "
+    key <- getLine 
+
+    if key == "q" then putStrLn "Closing." else do 
+        case search key root of 
+            Just found -> do 
+                putStrLn (printTerminal found)
+            Nothing    -> do 
+                putStrLn "Key doesn't exist"
+        searchTerminal root
+
 main :: IO ()
 main = do
     -- Read into a string
     -- data.json contains example from https://json.org/example.html 
     content <- readFile "data.json"
-    let result = parseJson content
-    print result
+    case parseJson content of 
+        Just root -> do 
+            putStrLn "\n'data.json' loaded."
+            putStrLn "-------------------\n"
+            putStrLn (printTerminal root) 
+            searchTerminal root
+        Nothing   -> putStrLn "error loading file."
