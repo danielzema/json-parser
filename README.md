@@ -13,4 +13,3 @@ data JsonValue = JsonNull
                | JsonArray [JsonValue] 
                | JsonObject [(String, JsonValue)]
 ```
-A search function is not yet implemented.
